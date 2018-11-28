@@ -9,7 +9,11 @@ import serial
 import time
 import os
 from subprocess import Popen, PIPE
-ser = serial.Serial("COM14", 9600)
+send = ''
+
+ar2 = serial.Serial("COM20",115200)
+
+time.sleep(2)
 
 position = {
     'l':'',
@@ -20,17 +24,23 @@ position = {
 def getSum(im):
     return int(im[40,40][0])+int(im[40,60][0])+int(im[60,60][0])+int(im[60,40][0])
 
+def dataforsingle(im):
+    return bin(im[40,40][0])[2:].zfill(8) + \
+            bin(im[40,60][0])[2:].zfill(8) + \
+            bin(im[60,60][0])[2:].zfill(8) + \
+            bin(im[60,40][0])[2:].zfill(8) + \
+            bin(math.ceil(getSum(im)/4))[2:].zfill(8)
 
-def getDot(im):
-    out=''
-    x1= 0 if int(im[60,60][0])<=85 else 1
-    x2= 0 if int(im[40,60][0])<=85 else 1
-    x3= 0 if int(im[40,40][0])<=85 else 1
-    x4= 0 if int(im[60,40][0])<=85 else 1
-    return out+str(x1)+str(x2)+str(x3)+str(x4)
+# def getDot(im):
+#     out=''
+#     x1= 0 if int(im[60,60][0])<=85 else 1
+#     x2= 0 if int(im[40,60][0])<=85 else 1
+#     x3= 0 if int(im[40,40][0])<=85 else 1
+#     x4= 0 if int(im[60,40][0])<=85 else 1
+#     return out+str(x1)+str(x2)+str(x3)+str(x4)
 
 def avrCon(val):
-    return 0 if val <100 else 1
+    return 0 if val <=85 else 1
 
 def bytes_to_String(bytes):
     out =''
@@ -45,27 +55,15 @@ def takepic():
     #time.sleep(60)
     while process.poll() is None:
         l = process.stdout.readline() 
-        print('.',end=' ')
-        if str(l).find('image: 10') != -1:
+        if str(l).find('image: 5') != -1:
             break
     Popen.kill(process)
-    print('end process')
-
-def sendData():
-    ser.write(str(input()).encode())
-    file = open('D:/Work/2D/Datacom/assign/text/test.txt','r') 
-    dataRead = file.read()
-    print(len(dataRead))
-    i=0
-    while(i<len(dataRead)):
-        print(dataRead[i])
-        ser.write(str(dataRead[i]).encode())
-        i+=1
-    file.close()
+    print('end camera process')
 
 
 def getData():
-    image = Image.open('C:/out/'+'9'+'.bmp')
+    data = ''
+    image = Image.open('C:/out/'+'4'+'.bmp')
     box_ul = (0,0,100,100)
     box_ur = (100,0,200,100)
     box_ll = (0,100,100,200)
@@ -85,67 +83,119 @@ def getData():
     sumul = getSum(upleft)
     sumll = getSum(lowleft)
     sumlr = getSum(lowright)
-            
-    data=''+getDot(lowright)+str((avrCon(math.ceil(sumlr/4))))+''+\
-            getDot(lowleft)+str((avrCon(math.ceil(sumll/4))))+''+\
-            getDot(upright)+str((avrCon(math.ceil(sumur/4))))+''+\
-            getDot(upleft)+str((avrCon(math.ceil(sumul/4))))
+    data=str((avrCon(math.ceil(sumlr/4))))+\
+        str((avrCon(math.ceil(sumll/4))))+\
+        str((avrCon(math.ceil(sumur/4))))+\
+        str((avrCon(math.ceil(sumul/4))))
+    # data=''+getDot(lowright)+str((avrCon(math.ceil(sumlr/4))))+''+\
+    #         getDot(lowleft)+str((avrCon(math.ceil(sumll/4))))+''+\
+    #         getDot(upright)+str((avrCon(math.ceil(sumur/4))))+''+\
+    #         getDot(upleft)+str((avrCon(math.ceil(sumul/4))))
+    return data
+
+def getDataSin():
+    data = ''
+    image = Image.open('C:/out/'+'4'+'.bmp')
+    box_ul = (0,0,100,100)
+    box_ur = (100,0,200,100)
+    box_ll = (0,100,100,200)
+    box_lr = (100,100,200,200)
+    box = (20,60,220,260)
+    newimage = image.crop(box)
+    upleft = newimage.crop(box_ul)
+    upright = newimage.crop(box_ur)
+    lowleft = newimage.crop(box_ll)
+    lowright = newimage.crop(box_lr)
+
+    upleft = np.array(upleft)
+    upright = np.array(upright)
+    lowleft = np.array(lowleft)
+    lowright = np.array(lowright)
+    data =  dataforsingle(lowright)+dataforsingle(lowleft)+dataforsingle(upright)+dataforsingle(upleft)
     return data
 
 def inittake():
     data=''
-    print("start in 5 sec")
-    for i in range(5,0,-1):
+    print("start in 3 sec")
+    for i in range(3,0,-1):
         print(i)
         time.sleep(1)
-    ser.write('l'.encode())
+    ar2.write('l'.encode())
     takepic()
     code = getData()
-    position['l']+=code[4]+code[9]+code[14]+code[19]
+    position['l']=code[0]+code[1]+code[2]+code[3]
     data+=position['l']+"1100"
 
-    ser.write('m'.encode())
+    ar2.write('m'.encode())
     takepic()
     code = getData()
-    position['m']+=code[4]+code[9]+code[14]+code[19]
+    position['m']=code[0]+code[1]+code[2]+code[3]
     data+=position['m']+"0110"
 
-    ser.write('r'.encode())
+    ar2.write('r'.encode())
     takepic()
     code = getData()
-    position['r']+=code[4]+code[9]+code[14]+code[19]
+    position['r']=code[0]+code[1]+code[2]+code[3]
     data+=position['r']+"0011"
 
-    print('yayy')
-    print(data)
-    #ready to send 
-    ser.write('m'.encode())
+    send = "00001001"+data
+    #ready to send 8bit command + 24bit data
+    #ar2.write('m'.encode())
+    sendData(send)
+    send = ''
 
 def singlePic(Getpicturebit):
-    print("woohoo",Getpicturebit)
+    wait = ''
+    new = ''
     for pos,val in position.items():
-        print(pos,' : ',val)
         if str(Getpicturebit) == val:
-            print("hello")
-            ser.write(str(pos).encode())
+            ar2.write(str(pos).encode())
             takepic()
-            print(getData())
+            send  = '00001010'+getDataSin()
+            new = getData()
+            position[str(pos)] = new[0]+new[1]+new[2]+new[3]
+            #send = "00001010"+getData()+"0000"
+            sendData(send)
+            while wait != b'6\r\n':
+                wait = ar2.readline()
+                print(wait)
+            else :
+                print(wait)
+                print("send point : ")
+                send = ''
+                send = '00001011'+'1000100111011100'+'0000000101010100'+'1010101111111110'+'0010001101110110'
+                sendData(send)
+            print('Done')
+            # break
+            
+        
+def sendData(data):
+    out = ''
+    out += str(chr(int(data[:8],2)))+data[8:]
+    print("send : ",out)
+    ar2.write(out.encode())
         
 
-
-
-
-
-##----------main----------##
-inittake()
+#    1001 1100 0010   1001 1100   1100 0010
+#00001001 1001 1100   1010 0110   1000 0011
+#           9       156     166         131
+# data = '00001001100111001010011010000011'
+# sendData(data)
+# while 1:
+#     getserial = ar2.readline()
+#     #print(getserial)
+#     getcmd = bytes_to_String(getserial)
+#     print(getcmd)
+#----------main----------##
+    
 while(1):
-    d = input("picture = ")
-    singlePic(str(d))
-#     s = ser.readline()
-#     print(bytes_to_String(s))
-
-
-
-
-
-
+    getserial = ar2.readline()
+    #print(getserial)
+    getcmd = bytes_to_String(getserial)
+    print(getcmd)
+    if getcmd[:4] == '0000':
+        print("Take all picture")
+        inittake()
+    elif getcmd[:4] == '0101':
+        print("Single Shot picture binary : ",getcmd[4:])
+        singlePic(str(getcmd[4:]))
