@@ -31,13 +31,6 @@ def dataforsingle(im):
             bin(im[60,40][0])[2:].zfill(8) + \
             bin(math.ceil(getSum(im)/4))[2:].zfill(8)
 
-# def getDot(im):
-#     out=''
-#     x1= 0 if int(im[60,60][0])<=85 else 1
-#     x2= 0 if int(im[40,60][0])<=85 else 1
-#     x3= 0 if int(im[40,40][0])<=85 else 1
-#     x4= 0 if int(im[60,40][0])<=85 else 1
-#     return out+str(x1)+str(x2)+str(x3)+str(x4)
 
 def avrCon(val):
     return 0 if val <=85 else 1
@@ -87,10 +80,6 @@ def getData():
         str((avrCon(math.ceil(sumll/4))))+\
         str((avrCon(math.ceil(sumur/4))))+\
         str((avrCon(math.ceil(sumul/4))))
-    # data=''+getDot(lowright)+str((avrCon(math.ceil(sumlr/4))))+''+\
-    #         getDot(lowleft)+str((avrCon(math.ceil(sumll/4))))+''+\
-    #         getDot(upright)+str((avrCon(math.ceil(sumur/4))))+''+\
-    #         getDot(upleft)+str((avrCon(math.ceil(sumul/4))))
     return data
 
 def getDataSin():
@@ -154,7 +143,7 @@ def singlePic(Getpicturebit):
             send  = '00001010'+getDataSin()
             new = getData()
             position[str(pos)] = new[0]+new[1]+new[2]+new[3]
-            #send = "00001010"+getData()+"0000"
+            
             sendData(send)
             while wait != b'6\r\n':
                 wait = ar2.readline()
@@ -176,16 +165,6 @@ def sendData(data):
     ar2.write(out.encode())
         
 
-#    1001 1100 0010   1001 1100   1100 0010
-#00001001 1001 1100   1010 0110   1000 0011
-#           9       156     166         131
-# data = '00001001100111001010011010000011'
-# sendData(data)
-# while 1:
-#     getserial = ar2.readline()
-#     #print(getserial)
-#     getcmd = bytes_to_String(getserial)
-#     print(getcmd)
 #----------main----------##
     
 while(1):
